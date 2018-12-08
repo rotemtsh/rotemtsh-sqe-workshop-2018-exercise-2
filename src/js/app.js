@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {parseCode} from './code-analyzer';
-import  {makeRow,  clearMyRows, afterSubString} from './makeRows';
+import  {makeRowsForInitAndAll,  clearMyRows, afterSubString} from './makeRows';
 
 
 $(document).ready(function () {
@@ -9,10 +9,12 @@ $(document).ready(function () {
         let codeToParse = $('#codePlaceholder').val();
         let parsedCode = parseCode(codeToParse);
         var assignments = {};
-        makeRow(parsedCode, assignments);
+        let callCode = $('#applyCode').val();
+        makeRowsForInitAndAll(parseCode(callCode), parsedCode, assignments);
         document.getElementsByTagName('p')[0].innerHTML=afterSubString;
         clearMyRows();
     });
 });
+
 
 
