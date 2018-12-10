@@ -2,6 +2,7 @@ var Parser = require('expr-eval').Parser;
 
 var afterSubString = '';
 var initAss =[];
+var globals =[];
 var initAssingmnetDic = {};
 
 
@@ -67,13 +68,8 @@ function declaration(parsedCode, assignments){
 function ExpressionParsing(parsedCode, assignments){
     if(parsedCode['expression']['type'] === 'AssignmentExpression')
         AssignmentParsing(parsedCode['expression'], assignments);
-    else if(parsedCode['expression']['type'] ==='CallExpression'){
+    else //CallExpression
         parsedCode['expression']['arguments'].forEach(body=> initAss.push(returnFunctions[body.type](body, assignments)));
-    }
-    else {
-        var name = returnFunctions[parsedCode['expression']['argument'].type](parsedCode['expression']['argument']);
-        var ret = UpdateParsing(parsedCode['expression'], assignments);
-    }
 }
 
 function AssignmentParsing(parsedCode, assignments){
@@ -91,7 +87,8 @@ function WhileParsing(parsedCode, assignments){
     var test = parsedCode['test'];
     test = returnFunctions[test.type](test, assignments);
     afterSubString += 'while (' + test +')';
-    makeRow(parsedCode['body'], assignments);
+    var newAss = Object.create(assignments);
+    makeRow(parsedCode['body'], newAss);
 }
 
 function IfParsing(parsedCode, assignments){
@@ -105,14 +102,14 @@ function IfParsing(parsedCode, assignments){
     else {
         afterSubString += '<div style="color:red">if (' + test + ')</div>';
         color = 'red';}
-    makeRow(parsedCode['consequent'], assignments);
+    var newAss = Object.create(assignments);
+    makeRow(parsedCode['consequent'], newAss);
     if(parsedCode['alternate']!=null)
         if(parsedCode['alternate']['type']=== 'IfStatement')
             elseif(parsedCode['alternate'], assignments, color);
         else  {
             afterSubString += 'else ';
-            makeRow(parsedCode['alternate'], assignments);
-        }
+            makeRow(parsedCode['alternate'], assignments);}
 }
 
 function BlockParsing(parsedCode, assignments){
@@ -232,12 +229,14 @@ function ArrayParsing(parsedCode,assignments){
 function insertParams(parsedCodeParam)
 {
     afterSubString += parsedCodeParam['name'] + ', ';
-    initAssingmnetDic[parsedCodeParam['name']] = initAss[0];
-    initAss.shift();
+    if(initAss.length > 0) {
+        initAssingmnetDic[parsedCodeParam['name']] = initAss[0];
+        initAss.shift();
+    }
+    globals.push(parsedCodeParam['name']);
 }
 
-function elseif(parsedCode, assignments, color)
-{
+function elseif(parsedCode, assignments, color) {
     var test = parsedCode['test'];
     test = returnFunctions[test.type](test,assignments);
     var ans = getAns(test, assignments);
@@ -247,7 +246,8 @@ function elseif(parsedCode, assignments, color)
     else {
         afterSubString += '<div style="color:red">else if (' + test + ')</div>';
         color = 'red';}
-    makeRow(parsedCode['consequent'],assignments);
+    var newAss = Object.create(assignments);
+    makeRow(parsedCode['consequent'],newAss);
     if(parsedCode['alternate']!=null)
         if(parsedCode['alternate']['type'] === 'IfStatement')
             elseif(parsedCode['alternate'],assignments, color);
@@ -286,14 +286,19 @@ function getAns(test, assignments){
     var dict = Object.create(assignments);
     for(var key in initAssingmnetDic)
         dict[key] = initAssingmnetDic[key];
-    return expr.evaluate(dict);
+    try {
+        return expr.evaluate(dict);
+    }
+    catch (e) {
+        return false;
+    }
 }
 
 function checkForAssignment(left){
     if(left.type === 'Identifier')
-        return initAssingmnetDic[left.name] != null;
+        return globals.includes(left.name);
     else//member
-        return initAssingmnetDic[left['object'].name] != null;
+        return globals.includes(left['object'].name);
 }
 
 function replaceArray(test,assignment){
@@ -318,4 +323,4 @@ function replaceArray(test,assignment){
 }
 
 
-export {makeRowsForInitAndAll, clearMyRows, afterSubString};
+export {makeRowsForInitAndAll, clearMyRows, afterSubString, makeRow};
