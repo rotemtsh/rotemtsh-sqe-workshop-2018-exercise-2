@@ -1,7 +1,5 @@
 var Parser = require('expr-eval').Parser;
-const tableStruct = (...keys) => ((...v) => keys.reduce((o, k, i) => {o[k] = v[i]; return o;} , {}));
-const rowItem = tableStruct('Line', 'Type', 'Name', 'Condition', 'Value');
-var myRows = [];
+
 var afterSubString = '';
 var initAss =[];
 var initAssingmnetDic = {};
@@ -27,7 +25,8 @@ const returnFunctions = {
     'MemberExpression': MemberParsing,
     'AssignmentExpression': AssignmentReturnParsing,
     'VariableDeclaration': VariableReturnParsing,
-    'UpdateExpression': UpdateParsing
+    'UpdateExpression': UpdateParsing,
+    'ArrayExpression': ArrayParsing
 };
 
 function makeRowsForInitAndAll(startCode, parsedCode, assignments){
@@ -45,7 +44,6 @@ function ProgramParsing(parsedCode, assignments){
 
 function FunctionParsing(parsedCode, assignments) {
     afterSubString += 'function ' + parsedCode['id']['name'] + '(';
-    myRows.push(rowItem(parsedCode['loc']['start']['line'], 'function declaration',parsedCode['id']['name'], '',''));
     parsedCode['params'].forEach(param => insertParams(param));
     afterSubString = afterSubString.slice(0, -2);
     afterSubString += '){<br/>';
@@ -64,19 +62,17 @@ function declaration(parsedCode, assignments){
     var value = parsedCode['init'];
     value = returnFunctions[value.type](value, assignments);
     assignments[name] = value;
-    myRows.push(rowItem(parsedCode['loc']['start']['line'], 'variable declaration', name, '', value));
 }
 
 function ExpressionParsing(parsedCode, assignments){
     if(parsedCode['expression']['type'] === 'AssignmentExpression')
         AssignmentParsing(parsedCode['expression'], assignments);
     else if(parsedCode['expression']['type'] ==='CallExpression'){
-        parsedCode['expression']['arguments'].forEach(body=> initAss.push(body.value));
+        parsedCode['expression']['arguments'].forEach(body=> initAss.push(returnFunctions[body.type](body, assignments)));
     }
     else {
         var name = returnFunctions[parsedCode['expression']['argument'].type](parsedCode['expression']['argument']);
         var ret = UpdateParsing(parsedCode['expression'], assignments);
-        myRows.push(rowItem(parsedCode['loc']['start']['line'], 'assignment expression', name, '', ret));
     }
 }
 
@@ -86,14 +82,15 @@ function AssignmentParsing(parsedCode, assignments){
     var value = parsedCode['right'];
     value = returnFunctions[value.type](value, assignments);
     assignments[left] = value;
-    myRows.push(rowItem(parsedCode['loc']['start']['line'], 'assignment expression', left, '', value));
+    if(checkForAssignment(parsedCode['left'])){
+        afterSubString += left + ' = ' + value +';<br/>';
+    }
 }
 
 function WhileParsing(parsedCode, assignments){
     var test = parsedCode['test'];
     test = returnFunctions[test.type](test, assignments);
     afterSubString += 'while (' + test +')';
-    myRows.push(rowItem(parsedCode['loc']['start']['line'], 'while statement', '', test, ''));
     makeRow(parsedCode['body'], assignments);
 }
 
@@ -101,15 +98,17 @@ function IfParsing(parsedCode, assignments){
     var test= parsedCode['test'];
     test = returnFunctions[test.type](test, assignments);
     var ans = getAns(test, assignments);
-    if(ans)
-        afterSubString += '<div style="color:green">if (' + test +')</div>';
-    else
-        afterSubString += '<div style="color:red">if (' + test +')</div>';
-    myRows.push(rowItem(parsedCode['loc']['start']['line'], 'if statement', '', test, ''));
+    var color ='';
+    if(ans) {
+        afterSubString += '<div style="color:green">if (' + test + ')</div>';
+        color = 'green';}
+    else {
+        afterSubString += '<div style="color:red">if (' + test + ')</div>';
+        color = 'red';}
     makeRow(parsedCode['consequent'], assignments);
     if(parsedCode['alternate']!=null)
         if(parsedCode['alternate']['type']=== 'IfStatement')
-            elseif(parsedCode['alternate'], assignments);
+            elseif(parsedCode['alternate'], assignments, color);
         else  {
             afterSubString += 'else ';
             makeRow(parsedCode['alternate'], assignments);
@@ -128,7 +127,6 @@ function ReturnParsing(parsedCode, assignments){
     var value = parsedCode['argument'];
     value = returnFunctions[value.type](value, assignments);
     afterSubString += 'return ' + value +';<br/>';
-    myRows.push(rowItem(parsedCode['loc']['start']['line'], 'return statement', '', '', value));
 }
 
 function IdentifierParsing(parsedCode, assignments){
@@ -144,7 +142,10 @@ function BinaryParsing(parsedCode, assignments){
     var oper = parsedCode['operator'];
     var right = returnFunctions[parsedCode['right'].type](parsedCode['right'], assignments);
     right = checkInAss(right, assignments);
-    return ''+ left + ' ' + oper + ' ' + right;
+    if(oper === '*' || oper === '/')
+        return '('+ left + ') ' + oper + ' ' + right;
+    else
+        return ''+ left + ' ' + oper + ' ' + right;
 }
 
 function LiteralParsing(parsedCode, assignments){
@@ -216,28 +217,40 @@ function UpdateParsing(parsedCode,assignments){
         return '' + arg + parsedCode['operator'];
 }
 
+/**
+ * @return {string}
+ */
+function ArrayParsing(parsedCode,assignments){
+    var arg = parsedCode['elements'];
+    var retVal = '[';
+    arg.forEach(body=> retVal += returnFunctions[body.type](body, assignments) + ', ');
+    retVal = retVal.slice(0, -2);
+    retVal += ']';
+    return retVal;
+}
+
 function insertParams(parsedCodeParam)
 {
     afterSubString += parsedCodeParam['name'] + ', ';
     initAssingmnetDic[parsedCodeParam['name']] = initAss[0];
     initAss.shift();
-    myRows.push(rowItem(parsedCodeParam['loc']['start']['line'], 'variable declaration', parsedCodeParam['name'],'','' ));
 }
 
-function elseif(parsedCode, assignments)
+function elseif(parsedCode, assignments, color)
 {
     var test = parsedCode['test'];
     test = returnFunctions[test.type](test,assignments);
     var ans = getAns(test, assignments);
-    if(ans)
-        afterSubString += '<div style="color:green">else if (' + test +')</div>';
-    else
-        afterSubString += '<div style="color:red">else if (' + test +')</div>';
-    myRows.push(rowItem(parsedCode['loc']['start']['line'], 'else if statement', '', test, ''));
+    if(ans && color !== 'green') {
+        afterSubString += '<div style="color:green">else if (' + test + ')</div>';
+        color = 'green';}
+    else {
+        afterSubString += '<div style="color:red">else if (' + test + ')</div>';
+        color = 'red';}
     makeRow(parsedCode['consequent'],assignments);
     if(parsedCode['alternate']!=null)
         if(parsedCode['alternate']['type'] === 'IfStatement')
-            elseif(parsedCode['alternate'],assignments);
+            elseif(parsedCode['alternate'],assignments, color);
         else  {
             afterSubString += 'else ';
             makeRow(parsedCode['alternate'],assignments);
@@ -245,18 +258,30 @@ function elseif(parsedCode, assignments)
 }
 
 function checkInAss(str,assignments){
-    if(assignments[str] != null)
-        return assignments[str];
+    var ret ='';
+    if(assignments[str] != null) {
+
+        ret =  '' + assignments[str];
+    }
     else
-        return str;
+        ret =  '' + str;
+    var splitCloseBraces = ret.split(']');
+    if (splitCloseBraces.length > 2) {
+        var splitOpenBraces = splitCloseBraces[1].split('[');
+        splitCloseBraces[0] = splitCloseBraces[0].split('[')[1];
+        var splitCommas = splitCloseBraces[0].split(',');
+        return splitCommas[splitOpenBraces[1]];
+    }
+    else
+        return ret;
 }
 
 function clearMyRows(){
-    myRows = [];
     afterSubString = '';
 }
 
 function getAns(test, assignments){
+    test = replaceArray(test,assignments);
     var expr = new Parser().parse(test);
     var dict = Object.create(assignments);
     for(var key in initAssingmnetDic)
@@ -264,5 +289,33 @@ function getAns(test, assignments){
     return expr.evaluate(dict);
 }
 
+function checkForAssignment(left){
+    if(left.type === 'Identifier')
+        return initAssingmnetDic[left.name] != null;
+    else//member
+        return initAssingmnetDic[left['object'].name] != null;
+}
 
-export {makeRowsForInitAndAll, myRows, rowItem, clearMyRows, afterSubString};
+function replaceArray(test,assignment){
+    var withoutSpaces = test.split(' ');
+    var testToRet = '';
+    for(var part in withoutSpaces) {
+        var splitOpenBraces = withoutSpaces[part].split('[');
+        if (splitOpenBraces.length > 1) {
+            var splitCloseBraces = splitOpenBraces[1].split(']');
+            var place = replaceArray(splitCloseBraces[0], assignment);
+            var array = '';
+            if (initAssingmnetDic[splitOpenBraces[0]] != null)
+                array = initAssingmnetDic[splitOpenBraces[0]];
+            else array = assignment[splitOpenBraces[0]];
+            var args = array.split('[')[1].split(']')[0];
+            args = args.split(',');
+            testToRet += args[place] + ' ';
+        }
+        else testToRet += withoutSpaces[part] + ' ';
+    }
+    return testToRet.slice(0,-1);
+}
+
+
+export {makeRowsForInitAndAll, clearMyRows, afterSubString};

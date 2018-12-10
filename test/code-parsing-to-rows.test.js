@@ -149,3 +149,17 @@ describe('The javascript parser for program', () => {
         rows.push(rowItem(9, 'return statement','','','a + b + c'));
         assert.equal(JSON.stringify(myRows),JSON.stringify(rows));});
 });
+
+//function foo(a, b, c){
+// let x = a;
+// let y = b;
+//
+// if(y > x[0]){
+//
+// b = y +1;
+// a[0] = b;
+// }
+//
+// return y;
+//
+// }
