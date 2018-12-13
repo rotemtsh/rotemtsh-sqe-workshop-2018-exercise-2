@@ -24,8 +24,6 @@ const returnFunctions = {
     'Literal': LiteralParsing,
     'UnaryExpression': UnaryParsing,
     'MemberExpression': MemberParsing,
-    'AssignmentExpression': AssignmentReturnParsing,
-    'VariableDeclaration': VariableReturnParsing,
     'UpdateExpression': UpdateParsing,
     'ArrayExpression': ArrayParsing
 };
@@ -40,7 +38,12 @@ function makeRow(parsedCode, assignments){
 }
 
 function ProgramParsing(parsedCode, assignments){
-    parsedCode['body'].forEach(body => makeRow(body, assignments));
+    var i;
+    for(i=0; i<parsedCode['body'].length; i++) {
+        if (parsedCode['body'][i].type === 'VariableDeclaration')
+            addGlobalVar(parsedCode['body'][i],assignments);
+        else makeRow(parsedCode['body'][i], assignments);
+    }
 }
 
 function FunctionParsing(parsedCode, assignments) {
@@ -68,13 +71,19 @@ function declaration(parsedCode, assignments){
 function ExpressionParsing(parsedCode, assignments){
     if(parsedCode['expression']['type'] === 'AssignmentExpression')
         AssignmentParsing(parsedCode['expression'], assignments);
+    else if(parsedCode['expression']['type'] === 'UpdateExpression') {
+        var str = UpdateParsing(parsedCode['expression'], assignments);
+        if(checkForAssignment(parsedCode['expression']['argument']))
+            afterSubString += str+';<br/>';
+    }
     else //CallExpression
         parsedCode['expression']['arguments'].forEach(body=> initAss.push(returnFunctions[body.type](body, assignments)));
 }
 
 function AssignmentParsing(parsedCode, assignments){
-    var left = parsedCode['left']['name'];
+    var left = parsedCode['left'];
     //left = returnFunctions[left.type](left, assignments);
+    left = getLeftStr(left);
     var value = parsedCode['right'];
     value = returnFunctions[value.type](value, assignments);
     assignments[left] = value;
@@ -98,10 +107,10 @@ function IfParsing(parsedCode, assignments){
     var color ='';
     if(ans) {
         afterSubString += '<div style="background-color:green;display:inline-block;">if (' + test + ')</div>';
-        color = 'green';}
+        color = true;}
     else {
         afterSubString += '<div style="background-color:red;display:inline-block;">if (' + test + ')</div>';
-        color = 'red';}
+        color = false;}
     var newAss = Object.create(assignments);
     makeRow(parsedCode['consequent'], newAss);
     if(parsedCode['alternate']!=null)
@@ -171,35 +180,6 @@ function MemberParsing(parsedCode, assignments){
     return '' + value +'[' + property +']';
 }
 
-/**
- * @return {string}
- */
-function AssignmentReturnParsing(parsedCode, assignments){
-    var left = parsedCode['left'];
-    left = returnFunctions[left.type](left,assignments);
-    left = checkInAss(left,assignments);
-    var value = parsedCode['right'];
-    value = returnFunctions[value.type](value,assignments);
-    value = checkInAss(value,assignments);
-    afterSubString += left + parsedCode['operator'] + value;
-    return '' + left +parsedCode['operator']+value;
-}
-
-function VariableReturnParsing(parsedCode,assignments){
-    return parsedCode['declarations'].reduce((str, declar) => str + declarationReturn(declar,assignments), '');
-}
-
-function declarationReturn(parsedCode,assignments){
-    var name = parsedCode['id'];
-    name = returnFunctions[name.type](name,assignments);
-    name = checkInAss(name,assignments);
-    var ret = '' + name;
-    var value = parsedCode['init'];
-    value = returnFunctions[value.type](value,assignments);
-    value = checkInAss(value,assignments);
-    ret +=  '=' + value;
-    return ret;
-}
 
 /**
  * @return {string}
@@ -240,12 +220,12 @@ function elseif(parsedCode, assignments, color) {
     var test = parsedCode['test'];
     test = returnFunctions[test.type](test,assignments);
     var ans = getAns(test, assignments);
-    if(ans && color !== 'green') {
+    if(ans && !color) {
         afterSubString += '<div style="background-color:green;display:inline-block;">else if (' + test + ')</div>';
-        color = 'green';}
+        color = true;}
     else {
         afterSubString += '<div style="background-color:red;display:inline-block;">else if (' + test + ')</div>';
-        color = 'red';}
+        color |= false;}
     var newAss = Object.create(assignments);
     makeRow(parsedCode['consequent'],newAss);
     if(parsedCode['alternate']!=null)
@@ -278,6 +258,9 @@ function checkInAss(str,assignments){
 
 function clearMyRows(){
     afterSubString = '';
+    initAss =[];
+    globals =[];
+    initAssingmnetDic = {};
 }
 
 function getAns(test, assignments){
@@ -301,6 +284,13 @@ function checkForAssignment(left){
         return globals.includes(left['object'].name);
 }
 
+function getLeftStr(left){
+    if(left.type === 'Identifier')
+        return left.name;
+    else//member
+        return left['object'].name+'[' + left['property'].value + ']';
+}
+
 function replaceArray(test,assignment){
     var withoutSpaces = test.split(' ');
     var testToRet = '';
@@ -320,6 +310,18 @@ function replaceArray(test,assignment){
         else testToRet += withoutSpaces[part] + ' ';
     }
     return testToRet.slice(0,-1);
+}
+
+function addGlobalVar(parsedCode,assignments){
+    var i;
+    for(i=0; i<parsedCode['declarations'].length; i++)
+    {
+        var name = parsedCode['declarations'][i]['id'];
+        name = returnFunctions[name.type](name, assignments);
+        var value = parsedCode['declarations'][i]['init'];
+        value = returnFunctions[value.type](value, assignments);
+        globals.push(name);
+    }
 }
 
 
