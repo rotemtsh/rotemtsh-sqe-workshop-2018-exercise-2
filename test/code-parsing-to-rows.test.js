@@ -26,23 +26,23 @@ describe('The javascript parser for conditions', () => {
     it('is parsing a if statement correctly', () => {
         clearMyRows();
         makeRow(parseCode('function myFunc(a){if(a < 1)a=a+1;}'),{});
-        var ans = 'function myFunc(a){<br/><div style="color:red">if (a < 1)</div>a = a + 1;<br/>}<br/>';
+        var ans = 'function myFunc(a){<br/><div style="background-color:red;display:inline-block;">if (a < 1)</div>a = a + 1;<br/>}<br/>';
         assert.equal(ans, afterSubString);});
     it('is parsing a else if correctly', () => {
         clearMyRows();
         makeRow(parseCode('function myFunc(a){if(a < 1)a=a+1; else if(a == 1) a = a+2;}'),{});
-        var ans = 'function myFunc(a){<br/><div style="color:red">if (a < 1)</div>a = a + 1;<br/><div style="color:red">else if (a == 1)</div>a = a + 2;<br/>}<br/>';
+        var ans = 'function myFunc(a){<br/><div style="background-color:red;display:inline-block;">if (a < 1)</div>a = a + 1;<br/><div style="background-color:red;display:inline-block;">else if (a == 1)</div>a = a + 2;<br/>}<br/>';
         assert.equal(ans, afterSubString);});
-    // it('is parsing a else correctly', () => {
-    //     clearMyRows();
-    //     makeRow(parseCode('function myFunc(a){a=1;}'),{});
-    //     var ans = 'function myFunc(a){<br/>a = 1;<br/>}<br/>';
-    //     assert.equal(ans, afterSubString);});
-    // it('is parsing a else if in else if correctly', () => {
-    //     clearMyRows();
-    //     makeRow(parseCode('function myFunc(a){a=1;}'),{});
-    //     var ans = 'function myFunc(a){<br/>a = 1;<br/>}<br/>';
-    //     assert.equal(ans, afterSubString);});
+    it('is parsing a else correctly', () => {
+        clearMyRows();
+        makeRow(parseCode('function myFunc(a){let b = a +1;let c =0;if(b > c){b = b +1;return b;}else {a=1;return a;}}'),{});
+        var ans = 'function myFunc(a){<br/><div style="background-color:red;display:inline-block;">if (a + 1 > 0)</div>{<p style="text-indent :2em;" >return a + 1 + 1;<br/></p>}<br/>else {<p style="text-indent :2em;" >a = 1;<br/>return 1;<br/></p>}<br/>}<br/>';
+        assert.equal(ans, afterSubString);});
+    it('is parsing a else with else if correctly', () => {
+        clearMyRows();
+        makeRow(parseCode('function myFunc(a){let b = a +1;let c =0;if(b > c){b = b +1;return b;}else if(b == c){c = b;return c;}else {a=1;return a;}}'),{});
+        var ans = 'function myFunc(a){<br/><div style="background-color:red;display:inline-block;">if (a + 1 > 0)</div>{<p style="text-indent :2em;" >return a + 1 + 1;<br/></p>}<br/><div style="background-color:red;display:inline-block;">else if (a + 1 == 0)</div>{<p style="text-indent :2em;" >return a + 1;<br/></p>}<br/>else {<p style="text-indent :2em;" >a = 1;<br/>return 1;<br/></p>}<br/>}<br/>';
+        assert.equal(ans, afterSubString);});
 });
 //
 // describe('The javascript parser for loops', () => {

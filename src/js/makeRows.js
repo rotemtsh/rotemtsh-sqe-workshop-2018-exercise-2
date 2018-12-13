@@ -73,8 +73,8 @@ function ExpressionParsing(parsedCode, assignments){
 }
 
 function AssignmentParsing(parsedCode, assignments){
-    var left = parsedCode['left'];
-    left = returnFunctions[left.type](left, assignments);
+    var left = parsedCode['left']['name'];
+    //left = returnFunctions[left.type](left, assignments);
     var value = parsedCode['right'];
     value = returnFunctions[value.type](value, assignments);
     assignments[left] = value;
@@ -97,10 +97,10 @@ function IfParsing(parsedCode, assignments){
     var ans = getAns(test, assignments);
     var color ='';
     if(ans) {
-        afterSubString += '<div style="color:green">if (' + test + ')</div>';
+        afterSubString += '<div style="background-color:green;display:inline-block;">if (' + test + ')</div>';
         color = 'green';}
     else {
-        afterSubString += '<div style="color:red">if (' + test + ')</div>';
+        afterSubString += '<div style="background-color:red;display:inline-block;">if (' + test + ')</div>';
         color = 'red';}
     var newAss = Object.create(assignments);
     makeRow(parsedCode['consequent'], newAss);
@@ -241,10 +241,10 @@ function elseif(parsedCode, assignments, color) {
     test = returnFunctions[test.type](test,assignments);
     var ans = getAns(test, assignments);
     if(ans && color !== 'green') {
-        afterSubString += '<div style="color:green">else if (' + test + ')</div>';
+        afterSubString += '<div style="background-color:green;display:inline-block;">else if (' + test + ')</div>';
         color = 'green';}
     else {
-        afterSubString += '<div style="color:red">else if (' + test + ')</div>';
+        afterSubString += '<div style="background-color:red;display:inline-block;">else if (' + test + ')</div>';
         color = 'red';}
     var newAss = Object.create(assignments);
     makeRow(parsedCode['consequent'],newAss);
