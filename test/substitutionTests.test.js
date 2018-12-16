@@ -1,6 +1,6 @@
 import assert from 'assert';
 import {parseCode} from '../src/js/code-analyzer';
-import {makeRow,afterSubString, clearMyRows, makeRowsForInitAndAll} from '../src/js/makeRows';
+import {makeRow,afterSubString, clearMyRows, makeRowsForInitAndAll} from '../src/js/substitution';
 
 
 describe('The javascript parser for assignment', () => {
@@ -86,6 +86,16 @@ describe('The javascript parser for program', () => {
             '<p style="text-indent :2em;" >return x + y + z + 0 + x + 5;<br/></p>}<br/><div style="background-color:red;display:inline-block;">' +
             'else if (x + 1 + y < (z) * 3)</div>{<p style="text-indent :2em;" >++x;<br/>return x + y + z + 0;<br/></p>}' +
             '<br/>else {<p style="text-indent :2em;" >return x + y + z + 0 + z + 5;<br/></p>}<br/>}<br/>';
+        assert.equal(ans, afterSubString);});
+});
+
+describe('The javascript parser for program with globals', () => {
+    it('is parsing a example run with globals correctly', () => {clearMyRows();
+        makeRowsForInitAndAll(parseCode('foo([1], 2, 3);'), parseCode('let a = 5;function foo(x, y, z){let b = x[0] + a;' +
+            'let c = y + z;if(b < c){x[0] = a;}else{ x[0] = y;}return x[0];}'), {});
+        var ans ='function foo(x, y, z){<br/><div style="background-color:red;display:inline-block;">' +
+            'if (x[0] + a < y + z)</div>{<p style="text-indent :2em;" >x[0] = a;<br/></p>}<br/>else {' +
+            '<p style="text-indent :2em;" >x[0] = y;<br/></p>}<br/>return x[0];<br/>}<br/>';
         assert.equal(ans, afterSubString);});
 });
 

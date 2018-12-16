@@ -245,15 +245,15 @@ function checkInAss(str,assignments){
     }
     else
         ret =  '' + str;
-    var splitCloseBraces = ret.split(']');
-    if (splitCloseBraces.length > 2) {
-        var splitOpenBraces = splitCloseBraces[1].split('[');
-        splitCloseBraces[0] = splitCloseBraces[0].split('[')[1];
-        var splitCommas = splitCloseBraces[0].split(',');
-        return splitCommas[splitOpenBraces[1]];
-    }
-    else
-        return ret;
+    // var splitCloseBraces = ret.split(']');
+    // if (splitCloseBraces.length > 2) {
+    //     var splitOpenBraces = splitCloseBraces[1].split('[');
+    //     splitCloseBraces[0] = splitCloseBraces[0].split('[')[1];
+    //     var splitCommas = splitCloseBraces[0].split(',');
+    //     return splitCommas[splitOpenBraces[1]];
+    // }
+    // else
+    return ret;
 }
 
 function clearMyRows(){
@@ -300,9 +300,9 @@ function replaceArray(test,assignment){
             var splitCloseBraces = splitOpenBraces[1].split(']');
             var place = replaceArray(splitCloseBraces[0], assignment);
             var array = '';
-            if (initAssingmnetDic[splitOpenBraces[0]] != null)
-                array = initAssingmnetDic[splitOpenBraces[0]];
-            else array = assignment[splitOpenBraces[0]];
+            // if (initAssingmnetDic[splitOpenBraces[0]] != null) {
+            array = initAssingmnetDic[splitOpenBraces[0]];
+            // else array = assignment[splitOpenBraces[0]];
             var args = array.split('[')[1].split(']')[0];
             args = args.split(',');
             testToRet += args[place] + ' ';

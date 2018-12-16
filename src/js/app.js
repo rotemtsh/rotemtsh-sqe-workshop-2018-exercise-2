@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {parseCode} from './code-analyzer';
-import  {makeRowsForInitAndAll,  clearMyRows, afterSubString} from './makeRows';
+import  {makeRowsForInitAndAll,  clearMyRows, afterSubString} from './substitution';
 
 
 $(document).ready(function () {
